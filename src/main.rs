@@ -85,25 +85,19 @@ impl WallLocation {
     fn size(&self) -> Vec2 {
 	match self {
 	    WallLocation::Left | WallLocation::Right => Vec2::new(WALL_THICKNESS, TOP_WALL - BOTTOM_WALL - WALL_THICKNESS),
-	    WallLocation::Top | WallLocation::Bottom => Vec2::new(WALL_THICKNESS, RIGHT_WALL - LEFT_WALL - WALL_THICKNESS),
+	    WallLocation::Top | WallLocation::Bottom => Vec2::new(RIGHT_WALL - LEFT_WALL - WALL_THICKNESS, WALL_THICKNESS),
 	}
     }
 }
 
 impl WallBundle {
     fn new(location: WallLocation) -> WallBundle {
-	let wall_rotation = match location {
-	    WallLocation::Left | WallLocation::Right => Quat::IDENTITY,
-	    WallLocation::Top | WallLocation::Bottom => Quat::from_rotation_z(1.5708),
-	};
-	
 	WallBundle {
 	    sprite_bundle: SpriteBundle{
 		transform: Transform{
-		    // We need to convert to a Vec3 for quaternion-based rotation
+		    // Not sure why we need to transform into Vec3 ??
 		    translation: location.position().extend(0.0),
 		    scale: location.size().extend(1.0),
-		    rotation: wall_rotation,
 		    ..default()
 		},
 		sprite: Sprite {
@@ -130,7 +124,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Player character
     commands.spawn((
 	SpriteBundle {
-	    texture: asset_server.load("sprites/frank.png"),
+	    texture: asset_server.load("sprites/triangulus.png"),
 	    transform: Transform::from_xyz(100., 0., 0.),
 	    ..default()
 	},
@@ -155,16 +149,16 @@ fn move_player(
     let mut x_direction = 0.0;
     let mut y_direction = 0.0;
     
-    if keyboard_input.pressed(KeyCode::Left){
+    if keyboard_input.pressed(KeyCode::A){
 	x_direction -= 1.0;
     }
-    if keyboard_input.pressed(KeyCode::Right){
+    if keyboard_input.pressed(KeyCode::D){
 	x_direction += 1.0;
     }
-    if keyboard_input.pressed(KeyCode::Up){
+    if keyboard_input.pressed(KeyCode::W){
 	y_direction += 1.0;
     }
-    if keyboard_input.pressed(KeyCode::Down){
+    if keyboard_input.pressed(KeyCode::S){
 	y_direction -= 1.0;
     }
 

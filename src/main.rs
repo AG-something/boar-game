@@ -2,38 +2,47 @@ use bevy::{
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
     sprite::MaterialMesh2dBundle,
-//    time::{FixedTimestep,FixedTimesteps},
+    time::{FixedTimestep,FixedTimesteps},
+    // For debugging
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
 };
 
 // Set to 60 frames per second
-const TIME_STEP: f32 = 1.0 / 60.0;
+const TIMESTEP: f32 = 1.0 / 2.0;
 
 const PLAYER_SPEED: f32 = 500.0;
 
 
 // Walls settings
 const WALL_THICKNESS: f32 = 10.0;
-const TOP_WALL: f32 = 288.0;
-const LEFT_WALL: f32 = -512.0;
-const BOTTOM_WALL: f32 = -288.0;
-const RIGHT_WALL: f32 = 512.0;
+const TOP_WALL: f32 = 540.0;
+const LEFT_WALL: f32 = -800.0;
+const BOTTOM_WALL: f32 = -540.0;
+const RIGHT_WALL: f32 = 800.0;
 const WALL_COLOR: Color = Color::rgb(0.0, 0.0, 0.0);
 
 const BACKGROUND_COLOR: Color = Color::rgb(0.0, 0.5, 0.0);
 
 
 // Main loop
-fn main() {
-//    let timestep_label = "timestep_label";
-//    let timestep = FixedTimestep::steps_per_second(TIME_STEP as f64).with_label(timestep_label);
-    
+fn main() {    
     App::new()
-	.add_plugins(DefaultPlugins)
-	.insert_resource(ClearColor(BACKGROUND_COLOR))
+	.add_plugins(DefaultPlugins.set(WindowPlugin {
+	    window: WindowDescriptor {
+		title: "Boar Game".into(),
+		width: 1600.0,
+		height: 1080.0,
+		..default()
+	    },
+	    ..default()
+	}))
+	// Show framerate in console
+	.add_plugin(LogDiagnosticsPlugin::default())
+	.add_plugin(FrameTimeDiagnosticsPlugin::default())
 	.add_startup_system(setup)
-	.add_system(move_player)
-//	.add_system(FixedTimestep::default())
-//	.insert_resource(FixedTimesteps::default())
+	.add_system_set(SystemSet::new()
+			.with_run_criteria(FixedTimestep::step(TIMESTEP as f64))
+			.with_system(move_player))
 	.add_system(bevy::window::close_on_esc)
 	.run();
 }
@@ -42,6 +51,9 @@ fn main() {
 // Components for the playable character
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct Npc;
 
 #[derive(Component)]
 struct Name;
@@ -116,28 +128,49 @@ impl WallBundle {
 
 
 // setup function that places everything in the World before the game starts
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
     // Utilities
     commands.spawn(Camera2dBundle::default());
 
+    // Background
+    commands.spawn(SpriteBundle {
+	texture: asset_server.load("sprites/background.png").into(),
+	..default()
+	});
 
+	
     // Player character
     commands.spawn((
 	SpriteBundle {
-	    texture: asset_server.load("sprites/triangulus.png"),
-	    transform: Transform::from_xyz(100., 0., 0.),
+	    texture: asset_server.load("sprites/triangulus.png").into(),
+	    transform: Transform::from_xyz(350., 350., 0.1),
 	    ..default()
 	},
 	Player,
 	Collider,
     ));
+
     
+    // House
+    commands.spawn((
+	SpriteBundle {
+	    texture: asset_server.load("sprites/maison.png").into(),
+	    transform: Transform::from_xyz(550.0, 180.0, 0.1),
+	    ..default()
+	},
+	Npc,
+    ));
+    
+/*
     // Spawn the walls
     commands.spawn(WallBundle::new(WallLocation::Top));
     commands.spawn(WallBundle::new(WallLocation::Left));
     commands.spawn(WallBundle::new(WallLocation::Bottom));
     commands.spawn(WallBundle::new(WallLocation::Right));  
-
+*/
 }
 
 
@@ -163,8 +196,8 @@ fn move_player(
     }
 
     // Compute the new coordinates of Player
-    let new_player_x = player_transform.translation.x + x_direction * PLAYER_SPEED * TIME_STEP;
-    let new_player_y = player_transform.translation.y + y_direction * PLAYER_SPEED * TIME_STEP;
+    let new_player_x = player_transform.translation.x + x_direction * PLAYER_SPEED * TIMESTEP;
+    let new_player_y = player_transform.translation.y + y_direction * PLAYER_SPEED * TIMESTEP;
 
     // Bounds ensure that the sprite never goes out of the screen
     let left_bound = LEFT_WALL + WALL_THICKNESS / 2.0 + 16.0;

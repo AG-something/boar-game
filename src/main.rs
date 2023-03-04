@@ -1,7 +1,6 @@
 use bevy::{
     prelude::*,
-    // This will be needed when we incorporate collisions (for combat).  The necessary components are already implemented
-//    sprite::collide_aabb::{collide, Collision},
+    sprite::collide_aabb::{collide, Collision},
     time::{FixedTimestep},
     // For debugging
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
@@ -186,6 +185,7 @@ fn setup(
 }
 
 
+// System to move the player sprite
 fn move_player(
     keyboard_input: Res<Input<KeyCode>>,
     mut query_player: Query<&mut Transform, With<Player>>,
@@ -223,7 +223,7 @@ fn move_player(
 }
 
 
-
+// System to move the camera sprite (following the player sprite)
 fn move_camera (
     keyboard_input: Res<Input<KeyCode>>,
     mut query_camera: Query<&mut Transform, With<MapCamera>>,
@@ -258,4 +258,25 @@ fn move_camera (
     // Apply the translation
     camera_transform.translation.x = new_transform_x.clamp(left_bound, right_bound);
     camera_transform.translation.y = new_transform_y.clamp(bottom_bound, top_bound);
+}
+
+
+
+// System to handle collision events (interactions between two sprites)
+fn check_for_collisions(
+    mut commands: Commands,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    collider_query: Query<(Entity, &Transform, Option<&Npc>), With<Collider>>,
+    mut collision_events: EventWriter<CollisionEvent>,
+) {
+    let player_transform = player_query.single_mut();
+
+    for (collider_entity, transform, maybe_npc) in &collider_query {
+	let collision = collide(
+	    player_transform.translation,   // Location of first object involved in collision (player)
+	    Vec2::new(64.0, 64.0),          // Size of first object involved in collision (player)
+	    transform.translation,          // Location of second object involved in collision
+	    Vec2::new(64.0, 64.0),          // Size of second object involved in collision
+	);
+    }
 }

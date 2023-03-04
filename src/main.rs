@@ -1,8 +1,8 @@
 use bevy::{
     prelude::*,
-    sprite::collide_aabb::{collide, Collision},
-    sprite::MaterialMesh2dBundle,
-    time::{FixedTimestep,FixedTimesteps},
+    // This will be needed when we incorporate collisions (for combat).  The necessary components are already implemented
+//    sprite::collide_aabb::{collide, Collision},
+    time::{FixedTimestep},
     // For debugging
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
 };
@@ -10,18 +10,17 @@ use bevy::{
 // Set to 60 frames per second
 const TIMESTEP: f32 = 1.0 / 2.0;
 
-const PLAYER_SPEED: f32 = 500.0;
+const PLAYER_SPEED: f32 = 100.0;
 
 
 // Walls settings
 const WALL_THICKNESS: f32 = 10.0;
 const TOP_WALL: f32 = 540.0;
-const LEFT_WALL: f32 = -800.0;
+const LEFT_WALL: f32 = -960.0;
 const BOTTOM_WALL: f32 = -540.0;
-const RIGHT_WALL: f32 = 800.0;
+const RIGHT_WALL: f32 = 960.0;
 const WALL_COLOR: Color = Color::rgb(0.0, 0.0, 0.0);
 
-const BACKGROUND_COLOR: Color = Color::rgb(0.0, 0.5, 0.0);
 
 
 // Main loop
@@ -42,13 +41,14 @@ fn main() {
 	.add_startup_system(setup)
 	.add_system_set(SystemSet::new()
 			.with_run_criteria(FixedTimestep::step(TIMESTEP as f64))
-			.with_system(move_player))
+			.with_system(move_player)
+			.with_system(move_camera))
 	.add_system(bevy::window::close_on_esc)
 	.run();
 }
 
 
-// Components for the playable character
+// Components for the characters
 #[derive(Component)]
 struct Player;
 
@@ -58,6 +58,10 @@ struct Npc;
 #[derive(Component)]
 struct Name;
 
+
+// Identifiers for cameras
+#[derive(Component)]
+struct MapCamera;
 
 // Components to handle collisions
 #[derive(Component)]
@@ -133,7 +137,17 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     // Utilities
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((
+	Camera2dBundle {
+	    projection: OrthographicProjection {
+		scale: 0.5,
+		..default()
+	    },
+	    transform: Transform::from_xyz(350.0, 250.0, 0.5),
+	    ..default()
+	},
+	MapCamera,
+    ));
 
     // Background
     commands.spawn(SpriteBundle {
@@ -146,7 +160,7 @@ fn setup(
     commands.spawn((
 	SpriteBundle {
 	    texture: asset_server.load("sprites/triangulus.png").into(),
-	    transform: Transform::from_xyz(350., 350., 0.1),
+	    transform: Transform::from_xyz(350., 350., 0.2),
 	    ..default()
 	},
 	Player,
@@ -164,21 +178,19 @@ fn setup(
 	Npc,
     ));
     
-/*
     // Spawn the walls
     commands.spawn(WallBundle::new(WallLocation::Top));
     commands.spawn(WallBundle::new(WallLocation::Left));
     commands.spawn(WallBundle::new(WallLocation::Bottom));
     commands.spawn(WallBundle::new(WallLocation::Right));  
-*/
 }
 
 
 fn move_player(
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<&mut Transform, With<Player>>,
+    mut query_player: Query<&mut Transform, With<Player>>,
 ) {
-    let mut player_transform = query.single_mut();
+    let mut player_transform = query_player.single_mut();
     let mut x_direction = 0.0;
     let mut y_direction = 0.0;
     
@@ -196,8 +208,8 @@ fn move_player(
     }
 
     // Compute the new coordinates of Player
-    let new_player_x = player_transform.translation.x + x_direction * PLAYER_SPEED * TIMESTEP;
-    let new_player_y = player_transform.translation.y + y_direction * PLAYER_SPEED * TIMESTEP;
+    let new_transform_x = player_transform.translation.x + x_direction * PLAYER_SPEED * TIMESTEP;
+    let new_transform_y = player_transform.translation.y + y_direction * PLAYER_SPEED * TIMESTEP;
 
     // Bounds ensure that the sprite never goes out of the screen
     let left_bound = LEFT_WALL + WALL_THICKNESS / 2.0 + 16.0;
@@ -206,6 +218,44 @@ fn move_player(
     let bottom_bound = BOTTOM_WALL + WALL_THICKNESS / 2.0 + 16.0;
 
     // Apply the translation
-    player_transform.translation.x = new_player_x.clamp(left_bound, right_bound);
-    player_transform.translation.y = new_player_y.clamp(bottom_bound, top_bound);
+    player_transform.translation.x = new_transform_x.clamp(left_bound, right_bound);
+    player_transform.translation.y = new_transform_y.clamp(bottom_bound, top_bound);
+}
+
+
+
+fn move_camera (
+    keyboard_input: Res<Input<KeyCode>>,
+    mut query_camera: Query<&mut Transform, With<MapCamera>>,
+) {
+    let mut camera_transform = query_camera.single_mut();
+    let mut x_direction = 0.0;
+    let mut y_direction = 0.0;
+    
+    if keyboard_input.pressed(KeyCode::A){
+	x_direction -= 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::D){
+	x_direction += 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::W){
+	y_direction += 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::S){
+	y_direction -= 1.0;
+    }
+
+    // Compute the new coordinates of Player
+    let new_transform_x = camera_transform.translation.x + x_direction * PLAYER_SPEED * TIMESTEP;
+    let new_transform_y = camera_transform.translation.y + y_direction * PLAYER_SPEED * TIMESTEP;
+
+    // Bounds ensure that the sprite never goes out of the screen
+    let left_bound = LEFT_WALL + WALL_THICKNESS / 2.0 + 16.0;
+    let right_bound = RIGHT_WALL - WALL_THICKNESS / 2.0 - 16.0;
+    let top_bound = TOP_WALL - WALL_THICKNESS / 2.0 - 24.0;
+    let bottom_bound = BOTTOM_WALL + WALL_THICKNESS / 2.0 + 16.0;
+
+    // Apply the translation
+    camera_transform.translation.x = new_transform_x.clamp(left_bound, right_bound);
+    camera_transform.translation.y = new_transform_y.clamp(bottom_bound, top_bound);
 }

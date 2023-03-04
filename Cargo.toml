@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.9.1"
+
+# Enable optimization for dependencies
+[profile.dev.package."*"]
+opt-level = 3

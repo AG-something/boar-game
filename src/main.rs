@@ -8,7 +8,7 @@ use bevy::{
 };
 
 // Set to 60 frames per second
-const TIMESTEP: f32 = 1.0 / 2.0;
+const TIMESTEP: f32 = 5.0 / 60.0;
 
 const PLAYER_SPEED: f32 = 100.0;
 
@@ -29,8 +29,8 @@ fn main() {
 	.add_plugins(DefaultPlugins.set(WindowPlugin {
 	    window: WindowDescriptor {
 		title: "Boar Game".into(),
-		width: 1600.0,
-		height: 1080.0,
+		width: 1024.0,
+		height: 762.0,
 		..default()
 	    },
 	    ..default()

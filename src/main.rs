@@ -40,7 +40,7 @@ fn main() {
 	.add_plugin(FrameTimeDiagnosticsPlugin::default())
 	.add_startup_system(setup)
 	.add_system_set(SystemSet::new()
-			.with_run_criteria(FixedTimestep::step(TIMESTEP as f64))
+			.with_run_criteria(FixedTimestep::step(f64::from(TIMESTEP)))
 			.with_system(move_player)
 			.with_system(move_camera))
 	.add_system(bevy::window::close_on_esc)
@@ -151,7 +151,7 @@ fn setup(
 
     // Background
     commands.spawn(SpriteBundle {
-	texture: asset_server.load("sprites/background.png").into(),
+	texture: asset_server.load("sprites/background.png"),
 	..default()
 	});
 
@@ -159,7 +159,7 @@ fn setup(
     // Player character
     commands.spawn((
 	SpriteBundle {
-	    texture: asset_server.load("sprites/triangulus.png").into(),
+	    texture: asset_server.load("sprites/triangulus.png"),
 	    transform: Transform::from_xyz(350., 350., 0.2),
 	    ..default()
 	},
@@ -171,7 +171,7 @@ fn setup(
     // House
     commands.spawn((
 	SpriteBundle {
-	    texture: asset_server.load("sprites/maison.png").into(),
+	    texture: asset_server.load("sprites/maison.png"),
 	    transform: Transform::from_xyz(550.0, 180.0, 0.1),
 	    ..default()
 	},

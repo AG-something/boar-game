@@ -39,6 +39,7 @@ fn main() {
 	.add_plugin(LogDiagnosticsPlugin::default())
 	.add_plugin(FrameTimeDiagnosticsPlugin::default())
 	.add_startup_system(setup)
+    .add_startup_system(audio_setup)
 	.add_system_set(SystemSet::new()
 			.with_run_criteria(FixedTimestep::step(f64::from(TIMESTEP)))
 			.with_system(move_player)
@@ -197,6 +198,10 @@ fn setup(
     commands.spawn(WallBundle::new(WallLocation::Right));  
 }
 
+fn audio_setup(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    let music = asset_server.load("sounds/acid_soup_2.ogg");
+    audio.play(music);
+}
 
 fn move_player(
     keyboard_input: Res<Input<KeyCode>>,

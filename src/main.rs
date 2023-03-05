@@ -2,14 +2,15 @@ use bevy::{
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
     time::{FixedTimestep},
+    text::Text2dBundle,
     // For debugging
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
 };
 
 // Set to 60 frames per second
-const TIMESTEP: f32 = 5.0 / 60.0;
+const TIMESTEP: f32 = 3.0 / 60.0;
 
-const PLAYER_SPEED: f32 = 100.0;
+const PLAYER_SPEED: f32 = 250.0;
 
 
 // Walls settings
@@ -41,7 +42,8 @@ fn main() {
 	.add_system_set(SystemSet::new()
 			.with_run_criteria(FixedTimestep::step(TIMESTEP as f64))
 			.with_system(move_player)
-			.with_system(move_camera))
+			.with_system(move_camera)
+			.with_system(check_for_collisions))
 	.add_system(bevy::window::close_on_esc)
 	.run();
 }
@@ -52,7 +54,13 @@ fn main() {
 struct Player;
 
 #[derive(Component)]
-struct Npc;
+enum Npc {
+    House,
+    Boar,
+}
+
+#[derive(Component)]
+struct HealthPoints(f32);
 
 #[derive(Component)]
 struct Name;
@@ -142,7 +150,7 @@ fn setup(
 		scale: 0.5,
 		..default()
 	    },
-	    transform: Transform::from_xyz(350.0, 250.0, 0.5),
+	    transform: Transform::from_xyz(350.0, 350.0, 0.5),
 	    ..default()
 	},
 	MapCamera,
@@ -163,6 +171,7 @@ fn setup(
 	    ..default()
 	},
 	Player,
+	HealthPoints(100.0),
 	Collider,
     ));
 
@@ -171,10 +180,22 @@ fn setup(
     commands.spawn((
 	SpriteBundle {
 	    texture: asset_server.load("sprites/maison.png").into(),
-	    transform: Transform::from_xyz(550.0, 180.0, 0.1),
+	    transform: Transform::from_xyz(350.0, 0.0, 0.1),
 	    ..default()
 	},
-	Npc,
+	Npc::House,
+    ));
+
+    
+    // Boar
+    commands.spawn((
+	SpriteBundle {
+	    texture: asset_server.load("sprites/frank.png").into(),
+	    transform: Transform::from_xyz(-254.0, 180.0, 0.1),
+	    ..default()
+	},
+	Npc::Boar,
+	HealthPoints(40.0),
     ));
     
     // Spawn the walls
@@ -263,20 +284,51 @@ fn move_camera (
 
 
 // System to handle collision events (interactions between two sprites)
+// (Not working)
 fn check_for_collisions(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut player_query: Query<&mut Transform, With<Player>>,
-    collider_query: Query<(Entity, &Transform, Option<&Npc>), With<Collider>>,
+    collider_query: Query<(&Transform, Option<&Npc>), With<Collider>>,
     mut collision_events: EventWriter<CollisionEvent>,
 ) {
     let player_transform = player_query.single_mut();
 
-    for (collider_entity, transform, maybe_npc) in &collider_query {
+    for (transform, maybe_npc) in &collider_query {
 	let collision = collide(
 	    player_transform.translation,   // Location of first object involved in collision (player)
 	    Vec2::new(64.0, 64.0),          // Size of first object involved in collision (player)
 	    transform.translation,          // Location of second object involved in collision
 	    Vec2::new(64.0, 64.0),          // Size of second object involved in collision
 	);
+    
+	
+	if let Some(collision) = collision {
+	    // Send the a signal to other systems so they can react
+	    collision_events.send_default();
+	    
+	    if let Some(npc) = maybe_npc {
+		match npc {
+		    Npc::House => {
+			let font = asset_server.load("fonts/FiraMono-Medium.ttf");
+			let text_style = TextStyle {
+			    font: font.clone(),
+			    font_size: 18.0,
+			    color: Color::GREEN,
+			    ..default()
+			};
+			let text_alignment = TextAlignment::CENTER;
+
+			commands.spawn(Text2dBundle {
+			    text: Text::from_section("House", text_style.clone())
+				.with_alignment(text_alignment),
+			    transform: Transform::from_xyz(350.0, 0.0, 0.2),
+			    ..default()
+			});
+		    },
+		    Npc::Boar => todo!(),
+		}
+	    }
+	}
     }
 }

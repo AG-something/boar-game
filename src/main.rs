@@ -42,7 +42,8 @@ fn main() {
 	.add_system_set(SystemSet::new()
 			.with_run_criteria(FixedTimestep::step(f64::from(TIMESTEP)))
 			.with_system(move_player)
-			.with_system(move_camera))
+			.with_system(move_camera)
+			.with_system(zoom_camera))
 	.add_system(bevy::window::close_on_esc)
 	.run();
 }
@@ -140,10 +141,10 @@ fn setup(
     commands.spawn((
 	Camera2dBundle {
 	    projection: OrthographicProjection {
-		scale: 0.5,
+		scale: 0.75,
 		..default()
 	    },
-	    transform: Transform::from_xyz(350.0, 250.0, 0.5),
+	    transform: Transform::from_xyz(350.0, 350.0, 0.5),
 	    ..default()
 	},
 	MapCamera,
@@ -171,8 +172,19 @@ fn setup(
     // House
     commands.spawn((
 	SpriteBundle {
-	    texture: asset_server.load("sprites/maison.png"),
-	    transform: Transform::from_xyz(550.0, 180.0, 0.1),
+	    texture: asset_server.load("sprites/maison.png").into(),
+	    transform: Transform::from_xyz(150.0, -200.0, 0.1),
+	    ..default()
+	},
+	Npc,
+    ));
+
+
+    // Boar (currently with frank sprite)
+    commands.spawn((
+	SpriteBundle {
+	    texture: asset_server.load("sprites/frank.png"),
+	    transform: Transform::from_xyz(-360.0, 270.0, 0.1),
 	    ..default()
 	},
 	Npc,
@@ -258,4 +270,21 @@ fn move_camera (
     // Apply the translation
     camera_transform.translation.x = new_transform_x.clamp(left_bound, right_bound);
     camera_transform.translation.y = new_transform_y.clamp(bottom_bound, top_bound);
+}
+
+
+// System that checks if a zoom in/out input is made and acts accordingly
+fn zoom_camera(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut query_camera: Query<&mut OrthographicProjection, With<MapCamera>>,
+) {
+    let mut camera_proj = query_camera.single_mut();
+
+    if keyboard_input.pressed(KeyCode::Minus) {
+	camera_proj.scale *= 1.07;
+    }
+    if keyboard_input.pressed(KeyCode::Equals) {
+	camera_proj.scale *= 0.93;
+    }
+    camera_proj.scale = camera_proj.scale.clamp(0.5, 2.0);
 }

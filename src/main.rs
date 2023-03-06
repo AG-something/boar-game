@@ -43,7 +43,8 @@ fn main() {
 			.with_run_criteria(FixedTimestep::step(f64::from(TIMESTEP)))
 			.with_system(move_player)
 			.with_system(move_camera)
-			.with_system(zoom_camera))
+			.with_system(zoom_camera)
+			.with_system(switch_camera))
 	.add_system(bevy::window::close_on_esc)
 	.run();
 }
@@ -61,6 +62,9 @@ struct Name;
 
 
 // Identifiers for cameras
+#[derive(Component)]
+struct PlayerCamera;
+
 #[derive(Component)]
 struct MapCamera;
 
@@ -140,11 +144,27 @@ fn setup(
     // Utilities
     commands.spawn((
 	Camera2dBundle {
+	    camera: Camera {
+		is_active: true,
+		..default()
+	    },
 	    projection: OrthographicProjection {
 		scale: 0.75,
 		..default()
 	    },
 	    transform: Transform::from_xyz(350.0, 350.0, 0.5),
+	    ..default()
+	},
+	PlayerCamera,
+    ));
+
+    // testing a second camera
+    commands.spawn((
+	Camera2dBundle {
+	    camera: Camera {
+		is_active: false,
+		..default()
+	    },
 	    ..default()
 	},
 	MapCamera,
@@ -238,7 +258,7 @@ fn move_player(
 
 fn move_camera (
     keyboard_input: Res<Input<KeyCode>>,
-    mut query_camera: Query<&mut Transform, With<MapCamera>>,
+    mut query_camera: Query<&mut Transform, With<PlayerCamera>>,
 ) {
     let mut camera_transform = query_camera.single_mut();
     let mut x_direction = 0.0;
@@ -276,7 +296,7 @@ fn move_camera (
 // System that checks if a zoom in/out input is made and acts accordingly
 fn zoom_camera(
     keyboard_input: Res<Input<KeyCode>>,
-    mut query_camera: Query<&mut OrthographicProjection, With<MapCamera>>,
+    mut query_camera: Query<&mut OrthographicProjection, With<PlayerCamera>>,
 ) {
     let mut camera_proj = query_camera.single_mut();
 
@@ -287,4 +307,24 @@ fn zoom_camera(
 	camera_proj.scale *= 0.93;
     }
     camera_proj.scale = camera_proj.scale.clamp(0.5, 2.0);
+}
+
+
+// System that switches between cameras
+fn switch_camera(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut query_pc: Query<&mut Camera, With<PlayerCamera>>,
+    mut query_mc: Query<&mut Camera, With<MapCamera>>,
+) {
+    let mut pc = query_pc.single_mut();
+    let mut mc = query_mc.single_mut();
+
+    if keyboard_input.pressed(KeyCode::F1) {
+	pc.is_active = false;
+	mc.is_active = true;
+    }
+    if keyboard_input.pressed(KeyCode::F2) {
+	pc.is_active = true;
+	mc.is_active = false;
+    }
 }
